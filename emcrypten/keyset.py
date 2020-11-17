@@ -36,6 +36,11 @@ class EncryptedValue:
     encrypted_keys: Dict[bytes, bytes]
 
     def decrypt(self, private_key, private_key_password):
+        """
+        Given your private key and private key password, attempts to decrypt this `EncryptedValue`
+        with them. Will fail if the password is wrong or if the public key of the supplied private
+        key was not among those used to encrypt.
+        """
         fingerprint = get_public_key_fingerprint_from_private_key(private_key, private_key_password)
         encrypted_ephemeral_key = self.encrypted_keys[fingerprint]
         ephemeral_key = decrypt_asymmetric(encrypted_ephemeral_key, private_key, private_key_password)
