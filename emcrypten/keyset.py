@@ -1,3 +1,4 @@
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 from dataclasses import dataclass
 
 from typing import List, Dict
@@ -25,6 +26,19 @@ class EncryptedValue:
         encrypted_ephemeral_key = self.encrypted_keys[fingerprint]
         ephemeral_key = decrypt_asymmetric(encrypted_ephemeral_key, private_key, private_key_password)
         return decrypt_symmetric(self.cipher_bytes, ephemeral_key)
+
+    def as_dict(self):
+        return dict(
+            k={k.hex(): urlsafe_b64encode(v).decode() for (k, v) in self.encrypted_keys.items()},
+            c=urlsafe_b64encode(self.cipher_bytes).decode()
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(
+            encrypted_keys={bytes.fromhex(k): urlsafe_b64decode(v) for (k, v) in d["k"].items()},
+            cipher_bytes=urlsafe_b64decode(d["c"]),
+        )
 
 
 class KeySet:
