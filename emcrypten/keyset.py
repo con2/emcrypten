@@ -21,6 +21,7 @@ from .utils import Pack
 FINGERPRINT_BYTES = 256 // 8
 KEY_BYTES = RSA_BITS // 8
 MAX_KEYS = 256  # number of keys encoded into unsigned char
+VERSION_MAGIC = b"EMC1"
 
 
 @dataclass
@@ -64,6 +65,7 @@ class EncryptedValue:
         Serialize this `EncryptedValue` into a binary string.
         """
         buf = Pack()
+        buf.pack("<4s", VERSION_MAGIC)
 
         # number of keys
         num_keys = len(self.encrypted_keys)
@@ -90,6 +92,9 @@ class EncryptedValue:
         Deserialize an `EncryptedValue` from a binary string produced using `as_bytes`.
         """
         buf = Pack(b)
+        version_magic, = buf.unpack("<4s")
+        if version_magic != VERSION_MAGIC:
+            raise ValueError(f"Unsupported binary format version: {version_magic!r}")
 
         # number of keys
         num_keys, = buf.unpack("<B")
