@@ -20,8 +20,9 @@ def test_keyset():
     plain_bytes = 13 * generate_symmetric_key()
     encrypted_value = key_set.encrypt(plain_bytes)
 
-    # serialize and deserialize
+    # serialize and deserialize in various formats
     encrypted_value = EncryptedValue.from_dict(json.loads(json.dumps(encrypted_value.as_dict())))
+    encrypted_value = EncryptedValue.from_bytes(encrypted_value.as_bytes())
 
     alice_decrypted_bytes = encrypted_value.decrypt(alice_priv, alice_password)
     assert alice_decrypted_bytes == plain_bytes

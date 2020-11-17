@@ -1,5 +1,7 @@
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from dataclasses import dataclass
+from io import BytesIO
+import struct
 
 from typing import List, Dict
 
@@ -13,7 +15,28 @@ from .crypto import (
     generate_symmetric_key,
     get_public_key_fingerprint_from_private_key,
     get_public_key_fingerprint,
+    RSA_BITS,
 )
+
+
+FINGERPRINT_BYTES = 256 // 8
+KEY_BYTES = RSA_BITS // 8
+MAX_KEYS = 256  # number of keys encoded into unsigned char
+
+
+class Pack():
+    def __init__(self, *args, **kwargs):
+        self.buffer = BytesIO(*args)
+
+    def pack(self, fmt, *args, **kwargs):
+        self.buffer.write(struct.pack(fmt, *args, **kwargs))
+
+    def unpack(self, fmt):
+        size = struct.calcsize(fmt)
+        return struct.unpack(fmt, self.buffer.read(size))
+
+    def getvalue(self):
+        return self.buffer.getvalue()
 
 
 @dataclass
@@ -39,6 +62,46 @@ class EncryptedValue:
             encrypted_keys={bytes.fromhex(k): urlsafe_b64decode(v) for (k, v) in d["k"].items()},
             cipher_bytes=urlsafe_b64decode(d["c"]),
         )
+
+    def as_bytes(self):
+        buf = Pack()
+
+        # number of keys
+        num_keys = len(self.encrypted_keys)
+        if num_keys > MAX_KEYS:
+            raise ValueError("maximum number of keys exceeded")
+        buf.pack("<B", num_keys)
+
+        # keys
+        for fingerprint, public_key in self.encrypted_keys.items():
+            buf.pack(f"<{FINGERPRINT_BYTES}s{KEY_BYTES}s", fingerprint, public_key)
+
+        # length of ciphertext
+        num_bytes = len(self.cipher_bytes)
+        buf.pack("<L", num_bytes)
+
+        # … and finally
+        buf.pack(f"<{num_bytes}s", self.cipher_bytes)
+
+        return buf.getvalue()
+
+    @classmethod
+    def from_bytes(cls, b):
+        buf = Pack(b)
+
+        # number of keys
+        num_keys, = buf.unpack("<B")
+
+        # keys
+        encrypted_keys = dict(buf.unpack(f"<{FINGERPRINT_BYTES}s{KEY_BYTES}s") for i in range(num_keys))
+
+        # length of ciphertext
+        num_bytes, = buf.unpack("<L")
+
+        # … and finally
+        cipher_bytes, = buf.unpack(f"<{num_bytes}s")
+
+        return cls(cipher_bytes, encrypted_keys)
 
 
 class KeySet:
