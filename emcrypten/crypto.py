@@ -44,8 +44,8 @@ def encrypt_symmetric(plain_bytes: bytes, key: bytes) -> bytes:
 
     Fernet's Base64 encoding is decoded for efficient storage into PostgreSQL binary fields.
 
-    :param: plain_bytes The value to encrypt
-    :param: key A key generated using `generate_symmetric_key`
+    :param plain_bytes: The value to encrypt
+    :param key: A key generated using `generate_symmetric_key`
     :returns: Raw bytes of the encrypted value
     """
     return urlsafe_b64decode(Fernet(key).encrypt(plain_bytes))
