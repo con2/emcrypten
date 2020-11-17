@@ -117,6 +117,10 @@ class EncryptedValue:
 
 
 class KeySet:
+    """
+    A `KeySet` contains the public keys of the intended recipients of confidential data.
+    It supports encrypting messages to these recipients via the `encrypt` operation.
+    """
     public_keys: Dict[bytes, bytes]
 
     def __init__(self, public_keys: List[bytes] = None):
