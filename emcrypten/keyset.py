@@ -46,6 +46,7 @@ class EncryptedValue:
         Serialize this `EncryptedValue` into a dict suitable for encoding into YAML, JSON etc.
         """
         return dict(
+            v=VERSION_MAGIC.decode(),
             k={k.hex(): urlsafe_b64encode(v).decode() for (k, v) in self.encrypted_keys.items()},
             c=urlsafe_b64encode(self.cipher_bytes).decode()
         )
@@ -55,6 +56,10 @@ class EncryptedValue:
         """
         Deserialize an `EncryptedValue` from a dict such as one read from YAML, JSON etc.
         """
+        version_magic = d["v"]
+        if version_magic != VERSION_MAGIC.decode():
+            raise ValueError(f"Unsupported JSON format version: {version_magic!r}")
+
         return cls(
             encrypted_keys={bytes.fromhex(k): urlsafe_b64decode(v) for (k, v) in d["k"].items()},
             cipher_bytes=urlsafe_b64decode(d["c"]),
